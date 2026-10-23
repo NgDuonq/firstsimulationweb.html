@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mô Phỏng 3D Dao Động Điều Hòa - Vật Lý Kỹ Thuật</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- OrbitControls CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #080c14;
+            color: #f3f4f6;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .code-font {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Glassmorphism Panels */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Custom Scrollbar for Controls */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+        /* Custom Styling for Sliders */
+        input[type=range] {
+            -webkit-appearance: none;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            height: 6px;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #38bdf8;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.8);
+            transition: transform 0.1s ease;
+        }
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        /* Toggle Checkbox Styling */
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #38bdf8;
+            background-color: #38bdf8;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: rgba(56, 189, 248, 0.3);
+        }
+
+        canvas {
+            display: block;
+            outline: none;
+        }
+    </style>
+</head>
+<body class="w-screen h-screen flex flex-col overflow-hidden">
+
+    <!-- WebGL Canvas Container -->
+    <div id="canvas-container" class="absolute inset-0 w-full h-full z-0"></div>
+
+    <!-- Header / Navbar Overlay -->
+    <header class="relative z-10 p-4 flex justify-between items-center pointer-events-none">
+        <div class="glass-panel px-5 py-3 rounded-2xl flex items-center gap-4 pointer-events-auto border-l-4 border-l-cyan-400">
+            <div class="p-2 bg-cyan-500/20 text-cyan-400 rounded-xl">
+                <i class="fa-solid fa-atom text-2xl animate-spin-slow"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-lg text-white tracking-wide">MÔ PHỎNG DAO ĐỘNG ĐIỀU HÒA 3D</h1>
+                <p class="text-xs text-gray-400">Sự liên hệ giữa Đường tròn lượng giác, Lò xo & Con lắc đơn</p>
+            </div>
+        </div>
+
+        <!-- Camera Control Quick Guide -->
+        <div class="hidden md:flex glass-panel px-4 py-2 rounded-xl text-xs text-gray-300 gap-4 pointer-events-auto items-center">
+            <span class="flex items-center gap-1.5"><i class="fa-solid fa-computer-mouse text-cyan-400"></i> Xoay: Chuột trái</span>
+            <span class="flex items-center gap-1.5"><i class="fa-solid fa-arrows-up-down-left-right text-cyan-400"></i> Di chuyển: Chuột phải</span>
+            <span class="flex items-center gap-1.5"><i class="fa-solid fa-magnifying-glass-plus text-cyan-400"></i> Zoom: Cuộn chuột</span>
+        </div>
+    </header>
+
+    <!-- Main UI Container -->
+    <div class="relative z-10 flex-1 flex justify-between p-4 pointer-events-none gap-4 overflow-hidden">
+        
+        <!-- Left Sidebar: Controls & Physics Parameters -->
+        <aside class="glass-panel w-80 md:w-96 rounded-2xl p-5 flex flex-col gap-4 pointer-events-auto overflow-y-auto max-h-full">
+            <div class="flex items-center justify-between border-b border-gray-700/50 pb-3">
+                <h2 class="font-semibold text-sm text-cyan-300 uppercase tracking-wider flex items-center gap-2">
+                    <i class="fa-solid fa-sliders"></i> Thông Số Khảo Sát
+                </h2>
+                <button id="btn-reset-params" title="Đặt lại thông số mặc định" class="text-xs text-gray-400 hover:text-white transition">
+                    <i class="fa-solid fa-rotate-left"></i> Mac định
+                </button>
+            </div>
+
+            <!-- Simulation Controls -->
+            <div class="grid grid-cols-3 gap-2">
+                <button id="btn-play" class="py-2.5 px-3 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold rounded-xl flex items-center justify-center gap-2 transition shadow-lg shadow-cyan-500/20">
+                    <i class="fa-solid fa-pause" id="play-icon"></i>
+                    <span id="play-text">Tạm dừng</span>
+                </button>
+                <button id="btn-step" class="py-2.5 px-3 bg-slate-800 hover:bg-slate-700 text-gray-200 font-semibold rounded-xl flex items-center justify-center gap-1.5 transition border border-gray-700">
+                    <i class="fa-solid fa-forward-step"></i> Bước
+                </button>
+                <button id="btn-restart" class="py-2.5 px-3 bg-slate-800 hover:bg-slate-700 text-gray-200 font-semibold rounded-xl flex items-center justify-center gap-1.5 transition border border-gray-700">
+                    <i class="fa-solid fa-arrow-rotate-left"></i> Gốc (t=0)
+                </button>
+            </div>
+
+            <!-- Parameter Sliders -->
+            <div class="space-y-4 text-xs">
+                <!-- Amplitude Slider -->
+                <div>
+                    <div class="flex justify-between mb-1">
+                        <label class="text-gray-300 font-medium">Biên độ (A):</label>
+                        <span id="val-A" class="code-font text-cyan-400 font-bold">5.0 m</span>
+                    </div>
+                    <input type="range" id="slider-A" min="1" max="8" step="0.1" value="5" class="w-full">
+                </div>
+
+                <!-- Angular Frequency Slider -->
+                <div>
+                    <div class="flex justify-between mb-1">
+                        <label class="text-gray-300 font-medium">Tần số góc (&omega;):</label>
+                        <span id="val-omega" class="code-font text-cyan-400 font-bold">2.0 rad/s</span>
+                    </div>
+                    <input type="range" id="slider-omega" min="0.5" max="5.0" step="0.1" value="2.0" class="w-full">
+                </div>
+
+                <!-- Initial Phase Slider -->
+                <div>
+                    <div class="flex justify-between mb-1">
+                        <label class="text-gray-300 font-medium">Pha ban đầu (&phi;):</label>
+                        <span id="val-phi" class="code-font text-cyan-400 font-bold">0.00 rad</span>
+                    </div>
+                    <input type="range" id="slider-phi" min="-3.1416" max="3.1416" step="0.05" value="0" class="w-full">
+                </div>
+
+                <!-- Simulation Speed Slider -->
+                <div>
+                    <div class="flex justify-between mb-1">
+                        <label class="text-gray-300 font-medium">Tốc độ thời gian:</label>
+                        <span id="val-speed" class="code-font text-cyan-400 font-bold">1.0x</span>
+                    </div>
+                    <input type="range" id="slider-speed" min="0.1" max="2.5" step="0.1" value="1.0" class="w-full">
+                </div>
+            </div>
+
+            <!-- Toggles & Display Options -->
+            <div class="border-t border-gray-700/50 pt-3 space-y-3">
+                <h3 class="font-semibold text-xs text-gray-400 uppercase tracking-wider">Hiển Thị Vector & Đồ Thị</h3>
+                
+                <!-- Position Vector x -->
+                <div class="flex items-center justify-between">
+                    <span class="text-xs text-blue-400 font-medium flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block"></span>
+                        Vector Li Độ x(t)
+                    </span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="toggle-vector-x" class="sr-only peer" checked>
+                        <div class="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                </div>
+
+                <!-- Velocity Vector v -->
+                <div class="flex items-center justify-between">
+                    <span class="text-xs text-green-400 font-medium flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-green-500 inline-block"></span>
+                        Vector Vận Tốc v(t)
+                    </span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="toggle-vector-v" class="sr-only peer" checked>
+                        <div class="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-600"></div>
+                    </label>
+                </div>
+
+                <!-- Acceleration Vector a -->
+                <div class="flex items-center justify-between">
+                    <span class="text-xs text-red-400 font-medium flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-red-500 inline-block"></span>
+                        Vector Gia Tốc a(t)
+                    </span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="toggle-vector-a" class="sr-only peer" checked>
+                        <div class="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-red-600"></div>
+                    </label>
+                </div>
+
+                <!-- 3D Wave Trace -->
+                <div class="flex items-center justify-between">
+                    <span class="text-xs text-amber-400 font-medium flex items-center gap-2">
+                        <i class="fa-solid fa-wave-square"></i>
+                        Vệt Sóng 3D (Z-Axis)
+                    </span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="toggle-wave-trace" class="sr-only peer" checked>
+                        <div class="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
+                    </label>
+                </div>
+
+                <!-- Projection Lines -->
+                <div class="flex items-center justify-between">
+                    <span class="text-xs text-cyan-300 font-medium flex items-center gap-2">
+                        <i class="fa-solid fa-ruler-combined"></i>
+                        Đường Gióng Đồng Bộ
+                    </span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="toggle-projections" class="sr-only peer" checked>
+                        <div class="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-cyan-500"></div>
+                    </label>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Right Sidebar: HUD & Live Numerical Data -->
+        <aside class="glass-panel w-72 md:w-80 rounded-2xl p-5 flex flex-col gap-4 pointer-events-auto overflow-y-auto max-h-full">
+            <div class="border-b border-gray-700/50 pb-3">
+                <h2 class="font-semibold text-sm text-cyan-300 uppercase tracking-wider flex items-center gap-2">
+                    <i class="fa-solid fa-chart-line"></i> Trạng Thái Động Học Realtime
+                </h2>
+            </div>
+
+            <!-- Time Display -->
+            <div class="bg-slate-900/80 p-3 rounded-xl border border-gray-800 flex justify-between items-center">
+                <span class="text-xs text-gray-400">Thời gian (t):</span>
+                <span id="hud-time" class="code-font text-lg font-bold text-amber-400">0.00 s</span>
+            </div>
+
+            <!-- Kinematics Readings -->
+            <div class="space-y-2.5 text-xs">
+                <!-- Position x -->
+                <div class="bg-blue-950/30 p-3 rounded-xl border border-blue-900/40">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-blue-300 font-medium">Li độ x(t):</span>
+                        <span id="hud-x" class="code-font text-sm font-bold text-blue-400">+0.00 m</span>
+                    </div>
+                    <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                        <div id="bar-x" class="bg-blue-500 h-full transition-all duration-75" style="width: 50%;"></div>
+                    </div>
+                </div>
+
+                <!-- Velocity v -->
+                <div class="bg-green-950/30 p-3 rounded-xl border border-green-900/40">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-green-300 font-medium">Vận tốc v(t):</span>
+                        <span id="hud-v" class="code-font text-sm font-bold text-green-400">+0.00 m/s</span>
+                    </div>
+                    <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                        <div id="bar-v" class="bg-green-500 h-full transition-all duration-75" style="width: 50%;"></div>
+                    </div>
+                </div>
+
+                <!-- Acceleration a -->
+                <div class="bg-red-950/30 p-3 rounded-xl border border-red-900/40">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-red-300 font-medium">Gia tốc a(t):</span>
+                        <span id="hud-a" class="code-font text-sm font-bold text-red-400">+0.00 m/s²</span>
+                    </div>
+                    <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                        <div id="bar-a" class="bg-red-500 h-full transition-all duration-75" style="width: 50%;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Energy Bar Indicators -->
+            <div class="border-t border-gray-700/50 pt-3 space-y-2">
+                <h3 class="font-semibold text-xs text-gray-400 uppercase tracking-wider">Năng Lượng Dao Động (m = 1kg)</h3>
+                
+                <!-- Kinetic Energy W_d -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="text-green-400">Động năng (W_đ):</span>
+                        <span id="hud-wd" class="code-font text-gray-300">0.00 J</span>
+                    </div>
+                    <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                        <div id="bar-wd" class="bg-green-500 h-full" style="width: 0%;"></div>
+                    </div>
+                </div>
+
+                <!-- Potential Energy W_t -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="text-blue-400">Thế năng (W_t):</span>
+                        <span id="hud-wt" class="code-font text-gray-300">0.00 J</span>
+                    </div>
+                    <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                        <div id="bar-wt" class="bg-blue-500 h-full" style="width: 0%;"></div>
+                    </div>
+                </div>
+
+                <!-- Total Mechanical Energy W -->
+                <div class="pt-1">
+                    <div class="flex justify-between text-xs font-semibold">
+                        <span class="text-amber-400">Cơ năng bảo toàn (W):</span>
+                        <span id="hud-w" class="code-font text-amber-300">0.00 J</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Formulas Active Box -->
+            <div class="border-t border-gray-700/50 pt-3">
+                <div class="bg-slate-900/90 p-3 rounded-xl border border-gray-800 text-xs space-y-1.5 code-font">
+                    <div class="text-cyan-400 font-bold border-b border-gray-800 pb-1">CÔNG THỨC VẬT LÝ:</div>
+                    <div class="text-blue-300">x = A·cos(&omega;t + &phi;)</div>
+                    <div class="text-green-300">v = -A&omega;·sin(&omega;t + &phi;)</div>
+                    <div class="text-red-300">a = -&omega;²·x</div>
+                </div>
+            </div>
+        </aside>
+
+    </div>
+
+    <!-- Bottom System Legends Footer -->
+    <footer class="relative z-10 p-4 pointer-events-none flex justify-center">
+        <div class="glass-panel px-6 py-2.5 rounded-2xl flex flex-wrap gap-6 text-xs font-medium text-gray-300 pointer-events-auto border-t-2 border-t-cyan-500/50 items-center shadow-2xl">
+            <span class="flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full bg-cyan-400 shadow-[0_0_8px_#22d3ee]"></span>
+                <span>1. Đường Tròn Lượng Giác (Y = +6.5)</span>
+            </span>
+            <span class="flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full bg-purple-400 shadow-[0_0_8px_#c084fc]"></span>
+                <span>2. Con Lắc Lò Xo (Y = 0.0)</span>
+            </span>
+            <span class="flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full bg-amber-400 shadow-[0_0_8px_#fbbf24]"></span>
+                <span>3. Con Lắc Đơn (Y = -6.5)</span>
+            </span>
+        </div>
+    </footer>
+
+    <!-- Three.js JavaScript Application Logic -->
+    <script>
+        // --- 1. GLOBAL STATE & PARAMETERS ---
+        const params = {
+            A: 5.0,          // Amplitude
+            omega: 2.0,      // Angular frequency (rad/s)
+            phi: 0.0,        // Initial phase (rad)
+            simSpeed: 1.0,   // Simulation speed multiplier
+            isRunning: true, // Animation playback state
+            showVectorX: true,
+            showVectorV: true,
+            showVectorA: true,
+            showWaveTrace: true,
+            showProjections: true
+        };
+
+        let simTime = 0.0;
+        const PENDULUM_LENGTH = 8.0; // Fixed pendulum string length
+
+        // UI DOM Elements
+        const sliderA = document.getElementById('slider-A');
+        const sliderOmega = document.getElementById('slider-omega');
+        const sliderPhi = document.getElementById('slider-phi');
+        const sliderSpeed = document.getElementById('slider-speed');
+
+        const valA = document.getElementById('val-A');
+        const valOmega = document.getElementById('val-omega');
+        const valPhi = document.getElementById('val-phi');
+        const valSpeed = document.getElementById('val-speed');
+
+        const btnPlay = document.getElementById('btn-play');
+        const playIcon = document.getElementById('play-icon');
+        const playText = document.getElementById('play-text');
+        const btnStep = document.getElementById('btn-step');
+        const btnRestart = document.getElementById('btn-restart');
+        const btnResetParams = document.getElementById('btn-reset-params');
+
+        // Checkboxes
+        const toggleVectorX = document.getElementById('toggle-vector-x');
+        const toggleVectorV = document.getElementById('toggle-vector-v');
+        const toggleVectorA = document.getElementById('toggle-vector-a');
+        const toggleWaveTrace = document.getElementById('toggle-wave-trace');
+        const toggleProjections = document.getElementById('toggle-projections');
+
+        // HUD Elements
+        const hudTime = document.getElementById('hud-time');
+        const hudX = document.getElementById('hud-x');
+        const hudV = document.getElementById('hud-v');
+        const hudA = document.getElementById('hud-a');
+        const hudWd = document.getElementById('hud-wd');
+        const hudWt = document.getElementById('hud-wt');
+        const hudW = document.getElementById('hud-w');
+
+        const barX = document.getElementById('bar-x');
+        const barV = document.getElementById('bar-v');
+        const barA = document.getElementById('bar-a');
+        const barWd = document.getElementById('bar-wd');
+        const barWt = document.getElementById('bar-wt');
+
+        // --- 2. THREE.JS SCENE SETUP ---
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x080c14, 0.018);
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 2, 28);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, preserveDrawingBuffer: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.2;
+        container.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.maxPolarAngle = Math.PI / 2 + 0.1;
+        controls.minDistance = 10;
+        controls.maxDistance = 60;
+
+        // --- 3. LIGHTING ---
+        const ambientLight = new THREE.AmbientLight(0x1e293b, 1.5);
+        scene.add(ambientLight);
+
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+        dirLight.position.set(15, 25, 20);
+        dirLight.castShadow = true;
+        dirLight.shadow.mapSize.width = 2048;
+        dirLight.shadow.mapSize.height = 2048;
+        dirLight.shadow.bias = -0.0001;
+        scene.add(dirLight);
+
+        // Point lights for colored neon glow accents
+        const pointLight1 = new THREE.PointLight(0x00f3ff, 2, 20);
+        pointLight1.position.set(0, 6.5, 2);
+        scene.add(pointLight1);
+
+        const pointLight2 = new THREE.PointLight(0xa855f7, 2, 20);
+        pointLight2.position.set(-10, 0, 2);
+        scene.add(pointLight2);
+
+        // --- 4. SCENE OBJECTS & GEOMETRY CREATION ---
+
+        // Grid & Measurement Axis Ground
+        const gridHelper = new THREE.GridHelper(60, 60, 0x1e293b, 0x0f172a);
+        gridHelper.position.y = -12;
+        scene.add(gridHelper);
+
+        // Central Reference Equilibrium Line (Vertical dotted axis at X=0)
+        const eqLineGeo = new THREE.BufferGeometry().setFromPoints([
+            new THREE.Vector3(0, -11, 0),
+            new THREE.Vector3(0, 11, 0)
+        ]);
+        const eqLineMat = new THREE.LineDashedMaterial({ color: 0x475569, dashSize: 0.4, gapSize: 0.3 });
+        const eqLine = new THREE.Line(eqLineGeo, eqLineMat);
+        eqLine.computeLineDistances();
+        scene.add(eqLine);
+
+        // --- SYSTEM 1: REFERENCE CIRCLE (Y = +6.5) ---
+        const Y_CIRCLE = 6.5;
+        const circleGroup = new THREE.Group();
+        circleGroup.position.set(0, Y_CIRCLE, 0);
+        scene.add(circleGroup);
+
+        // Dynamic Reference Circle Mesh Line
+        let circleMesh;
+        function createCircleMesh(radius) {
+            if (circleMesh) circleGroup.remove(circleMesh);
+            const curve = new THREE.EllipseCurve(0, 0, radius, radius, 0, 2 * Math.PI, false, 0);
+            const points = curve.getPoints(100);
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const material = new THREE.LineBasicMaterial({ color: 0x00f3ff, linewidth: 2 });
+            circleMesh = new THREE.LineLoop(geometry, material);
+            circleGroup.add(circleMesh);
+        }
+        createCircleMesh(params.A);
+
+        // Circle Rotating Radius Wire
+        const radiusLineGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(params.A, 0, 0)]);
+        const radiusLineMat = new THREE.LineBasicMaterial({ color: 0x38bdf8 });
+        const radiusLine = new THREE.Line(radiusLineGeo, radiusLineMat);
+        circleGroup.add(radiusLine);
+
+        // Rotating Point P Sphere
+        const pointPGeo = new THREE.SphereGeometry(0.35, 32, 32);
+        const pointPMat = new THREE.MeshStandardMaterial({ color: 0x00f3ff, emissive: 0x00f3ff, emissiveIntensity: 0.8 });
+        const pointP = new THREE.Mesh(pointPGeo, pointPMat);
+        circleGroup.add(pointP);
+
+        // Projected Point on Circle Horizontal Diameter
+        const projPointP = new THREE.Mesh(
+            new THREE.SphereGeometry(0.25, 24, 24),
+            new THREE.MeshStandardMaterial({ color: 0x38bdf8, emissive: 0x38bdf8, emissiveIntensity: 0.5 })
+        );
+        circleGroup.add(projPointP);
+
+        // Vertical drop line inside reference circle
+        const circleDropLineGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(0,0,0)]);
+        const circleDropLineMat = new THREE.LineDashedMaterial({ color: 0x38bdf8, dashSize: 0.2, gapSize: 0.2 });
+        const circleDropLine = new THREE.Line(circleDropLineGeo, circleDropLineMat);
+        circleGroup.add(circleDropLine);
+
+
+        // --- SYSTEM 2: MASS-SPRING SYSTEM (Y = 0.0) ---
+        const Y_SPRING = 0.0;
+        const springGroup = new THREE.Group();
+        springGroup.position.set(0, Y_SPRING, 0);
+        scene.add(springGroup);
+
+        // Fixed Anchor Wall
+        const WALL_X = -13.0;
+        const wallGeo = new THREE.BoxGeometry(0.8, 4, 3);
+        const wallMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.8, roughness: 0.3 });
+        const wall = new THREE.Mesh(wallGeo, wallMat);
+        wall.position.set(WALL_X - 0.4, 0, 0);
+        wall.castShadow = true;
+        wall.receiveShadow = true;
+        springGroup.add(wall);
+
+        // Track Rail Line
+        const trackGeo = new THREE.BoxGeometry(30, 0.1, 0.4);
+        const trackMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.9, roughness: 0.1 });
+        const track = new THREE.Mesh(trackGeo, trackMat);
+        track.position.set(0, -0.8, 0);
+        springGroup.add(track);
+
+        // Oscillating Metallic Block
+        const BLOCK_SIZE = 1.5;
+        const blockGeo = new THREE.BoxGeometry(BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+        const blockMat = new THREE.MeshStandardMaterial({ 
+            color: 0xc084fc, 
+            metalness: 0.7, 
+            roughness: 0.2,
+            emissive: 0x581c87,
+            emissiveIntensity: 0.2
+        });
+        const block = new THREE.Mesh(blockGeo, blockMat);
+        block.castShadow = true;
+        block.receiveShadow = true;
+        springGroup.add(block);
+
+        // Helical Dynamic Spring Wire
+        const springGeo = new THREE.BufferGeometry();
+        const springMat = new THREE.LineBasicMaterial({ color: 0xe879f9, linewidth: 2 });
+        const springLine = new THREE.Line(springGeo, springMat);
+        springGroup.add(springLine);
+
+        function updateSpringGeometry(endX) {
+            const startX = WALL_X;
+            const length = endX - (BLOCK_SIZE/2) - startX;
+            const turns = 16;
+            const pointsCount = 300;
+            const radius = 0.45;
+            const points = [];
+
+            for (let i = 0; i <= pointsCount; i++) {
+                const t = i / pointsCount;
+                const x = startX + t * length;
+                const angle = t * turns * Math.PI * 2;
+                const y = Math.sin(angle) * radius;
+                const z = Math.cos(angle) * radius;
+                points.push(new THREE.Vector3(x, y, z));
+            }
+            springGeo.setFromPoints(points);
+        }
+
+        // --- SYSTEM 3: SIMPLE PENDULUM (Y = -6.5) ---
+        const Y_PENDULUM_PIVOT = -2.5;
+        const pendulumGroup = new THREE.Group();
+        pendulumGroup.position.set(0, Y_PENDULUM_PIVOT, 0);
+        scene.add(pendulumGroup);
+
+        // Ceiling Mount / Pivot
+        const pivotMesh = new THREE.Mesh(
+            new THREE.SphereGeometry(0.3, 16, 16),
+            new THREE.MeshStandardMaterial({ color: 0xfbbf24, metalness: 0.8 })
+        );
+        pendulumGroup.add(pivotMesh);
+
+        // Pendulum String Line
+        const stringGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(0, -PENDULUM_LENGTH, 0)]);
+        const stringMat = new THREE.LineBasicMaterial({ color: 0xfef08a, linewidth: 2 });
+        const pendulumString = new THREE.Line(stringGeo, stringMat);
+        pendulumGroup.add(pendulumString);
+
+        // Spherical Pendulum Bob
+        const bobGeo = new THREE.SphereGeometry(0.7, 32, 32);
+        const bobMat = new THREE.MeshStandardMaterial({
+            color: 0xfbbf24,
+            metalness: 0.8,
+            roughness: 0.2,
+            emissive: 0x78350f,
+            emissiveIntensity: 0.3
+        });
+        const pendulumBob = new THREE.Mesh(bobGeo, bobMat);
+        pendulumBob.castShadow = true;
+        pendulumGroup.add(pendulumBob);
+
+
+        // --- VERTICAL SYNCHRONIZATION PROJECTION LINES ---
+        const projLineGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(0,0,0)]);
+        const projLineMat = new THREE.LineDashedMaterial({ color: 0x38bdf8, dashSize: 0.3, gapSize: 0.2, opacity: 0.6, transparent: true });
+        const projLine = new THREE.Line(projLineGeo, projLineMat);
+        scene.add(projLine);
+
+
+        // --- PHYSICAL DYNAMIC VECTORS (Arrow Helpers) ---
+        // Blue: Li độ x | Green: Vận tốc v | Red: Gia tốc a
+        const vecX = new THREE.ArrowHelper(new THREE.Vector3(1,0,0), new THREE.Vector3(0,0,0), 1, 0x3b82f6, 0.4, 0.3);
+        const vecV = new THREE.ArrowHelper(new THREE.Vector3(1,0,0), new THREE.Vector3(0,0,0), 1, 0x22c55e, 0.4, 0.3);
+        const vecA = new THREE.ArrowHelper(new THREE.Vector3(1,0,0), new THREE.Vector3(0,0,0), 1, 0xef4444, 0.4, 0.3);
+
+        springGroup.add(vecX);
+        springGroup.add(vecV);
+        springGroup.add(vecA);
+
+
+        // --- 3D SINUSOIDAL WAVE TRACE (Z-AXIS PROPAGATION) ---
+        const WAVE_POINTS = 250;
+        const waveGeo = new THREE.BufferGeometry();
+        const wavePositions = new Float32Array(WAVE_POINTS * 3);
+        waveGeo.setAttribute('position', new THREE.BufferAttribute(wavePositions, 3));
+        
+        const waveMat = new THREE.LineBasicMaterial({ color: 0xf59e0b, linewidth: 2.5 });
+        const waveLine = new THREE.Line(waveGeo, waveMat);
+        scene.add(waveLine);
+
+        // Pre-fill wave positions array
+        for (let i = 0; i < WAVE_POINTS; i++) {
+            wavePositions[i * 3] = 0;     // X
+            wavePositions[i * 3 + 1] = 0; // Y
+            wavePositions[i * 3 + 2] = i * 0.12; // Z extending backwards
+        }
+
+        // --- 5. EVENT LISTENERS & INTERACTION LOGIC ---
+
+        function updateParamsFromUI() {
+            params.A = parseFloat(sliderA.value);
+            params.omega = parseFloat(sliderOmega.value);
+            params.phi = parseFloat(sliderPhi.value);
+            params.simSpeed = parseFloat(sliderSpeed.value);
+
+            valA.textContent = params.A.toFixed(1) + ' m';
+            valOmega.textContent = params.omega.toFixed(1) + ' rad/s';
+            valPhi.textContent = params.phi.toFixed(2) + ' rad';
+            valSpeed.textContent = params.simSpeed.toFixed(1) + 'x';
+
+            createCircleMesh(params.A);
+            updatePhysics(0); // Refresh view on slider change
+        }
+
+        sliderA.addEventListener('input', updateParamsFromUI);
+        sliderOmega.addEventListener('input', updateParamsFromUI);
+        sliderPhi.addEventListener('input', updateParamsFromUI);
+        sliderSpeed.addEventListener('input', updateParamsFromUI);
+
+        // Play/Pause button
+        btnPlay.addEventListener('click', () => {
+            params.isRunning = !params.isRunning;
+            if (params.isRunning) {
+                playIcon.className = "fa-solid fa-pause";
+                playText.textContent = "Tạm dừng";
+                btnPlay.classList.replace("bg-amber-500", "bg-cyan-500");
+            } else {
+                playIcon.className = "fa-solid fa-play";
+                playText.textContent = "Tiếp tục";
+                btnPlay.classList.replace("bg-cyan-500", "bg-amber-500");
+            }
+        });
+
+        // Step Forward button
+        btnStep.addEventListener('click', () => {
+            params.isRunning = false;
+            playIcon.className = "fa-solid fa-play";
+            playText.textContent = "Tiếp tục";
+            btnPlay.classList.replace("bg-cyan-500", "bg-amber-500");
+            updatePhysics(0.033);
+        });
+
+        // Restart to t=0
+        btnRestart.addEventListener('click', () => {
+            simTime = 0.0;
+            updatePhysics(0);
+        });
+
+        // Reset All Parameters to Default
+        btnResetParams.addEventListener('click', () => {
+            sliderA.value = 5.0;
+            sliderOmega.value = 2.0;
+            sliderPhi.value = 0.0;
+            sliderSpeed.value = 1.0;
+            simTime = 0.0;
+            updateParamsFromUI();
+        });
+
+        // Toggle Event Listeners
+        toggleVectorX.addEventListener('change', (e) => params.showVectorX = e.target.checked);
+        toggleVectorV.addEventListener('change', (e) => params.showVectorV = e.target.checked);
+        toggleVectorA.addEventListener('change', (e) => params.showVectorA = e.target.checked);
+        toggleWaveTrace.addEventListener('change', (e) => {
+            params.showWaveTrace = e.target.checked;
+            waveLine.visible = params.showWaveTrace;
+        });
+        toggleProjections.addEventListener('change', (e) => {
+            params.showProjections = e.target.checked;
+            projLine.visible = params.showProjections;
+        });
+
+        // Window Resize Handling
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+
+        // --- 6. PHYSICS SIMULATION ENGINE & ANIMATION LOOP ---
+
+        const clock = new THREE.Clock();
+
+        function updatePhysics(dt) {
+            simTime += dt * params.simSpeed;
+
+            // Physical Motion Formulas
+            const phase = params.omega * simTime + params.phi;
+            const x = params.A * Math.cos(phase);                         // Li độ x
+            const v = -params.A * params.omega * Math.sin(phase);          // Vận tốc v
+            const a = -params.A * Math.pow(params.omega, 2) * Math.cos(phase); // Gia tốc a
+
+            // --- Update System 1: Reference Circle ---
+            const circleX = params.A * Math.cos(phase);
+            const circleY = params.A * Math.sin(phase);
+            pointP.position.set(circleX, circleY, 0);
+            projPointP.position.set(circleX, 0, 0);
+            
+            // Radius wire update
+            const rLinePts = [new THREE.Vector3(0,0,0), new THREE.Vector3(circleX, circleY, 0)];
+            radiusLine.geometry.setFromPoints(rLinePts);
+
+            // Circle interior drop line update
+            const cDropPts = [new THREE.Vector3(circleX, circleY, 0), new THREE.Vector3(circleX, 0, 0)];
+            circleDropLine.geometry.setFromPoints(cDropPts);
+            circleDropLine.computeLineDistances();
+
+
+            // --- Update System 2: Mass-Spring System ---
+            block.position.x = x;
+            updateSpringGeometry(x);
+
+
+            // --- Update System 3: Simple Pendulum ---
+            // Small angle approximation equivalence: sin(theta) = x / L
+            const sinTheta = Math.max(-0.99, Math.min(0.99, x / PENDULUM_LENGTH));
+            const theta = Math.asin(sinTheta);
+            const pendulumY = -PENDULUM_LENGTH * Math.cos(theta);
+
+            pendulumBob.position.set(x, pendulumY, 0);
+            
+            const stringPts = [new THREE.Vector3(0, 0, 0), new THREE.Vector3(x, pendulumY, 0)];
+            pendulumString.geometry.setFromPoints(stringPts);
+
+
+            // --- Update Sync Vertical Projection Line ---
+            const projPts = [
+                new THREE.Vector3(x, Y_CIRCLE + circleY, 0),
+                new THREE.Vector3(x, Y_PENDULUM_PIVOT + pendulumY, 0)
+            ];
+            projLine.geometry.setFromPoints(projPts);
+            projLine.computeLineDistances();
+
+
+            // --- Update Physical Vectors (3D Arrows) ---
+            const vecOffsetY = 1.3;
+
+            // 1. Position Vector x (Blue)
+            if (params.showVectorX && Math.abs(x) > 0.05) {
+                vecX.visible = true;
+                vecX.position.set(0, vecOffsetY, 0);
+                vecX.setDirection(new THREE.Vector3(Math.sign(x), 0, 0));
+                vecX.setLength(Math.abs(x), 0.3, 0.2);
+            } else {
+                vecX.visible = false;
+            }
+
+            // 2. Velocity Vector v (Green)
+            if (params.showVectorV && Math.abs(v) > 0.05) {
+                vecV.visible = true;
+                vecV.position.set(x, 0, 0.9);
+                vecV.setDirection(new THREE.Vector3(Math.sign(v), 0, 0));
+                // Scaled visually for legibility
+                const vLength = Math.min(Math.abs(v) * 0.4, 8);
+                vecV.setLength(vLength, 0.3, 0.2);
+            } else {
+                vecV.visible = false;
+            }
+
+            // 3. Acceleration Vector a (Red)
+            if (params.showVectorA && Math.abs(a) > 0.05) {
+                vecA.visible = true;
+                vecA.position.set(x, -vecOffsetY, 0);
+                vecA.setDirection(new THREE.Vector3(Math.sign(a), 0, 0));
+                // Scaled visually for legibility
+                const aLength = Math.min(Math.abs(a) * 0.15, 8);
+                vecA.setLength(aLength, 0.3, 0.2);
+            } else {
+                vecA.visible = false;
+            }
+
+
+            // --- Update 3D Sinusoidal Wave Trace ---
+            if (params.showWaveTrace && params.isRunning) {
+                const posAttr = waveGeo.attributes.position;
+                // Shift all previous Z points backwards
+                for (let i = WAVE_POINTS - 1; i > 0; i--) {
+                    posAttr.setX(i, posAttr.getX(i - 1));
+                }
+                // Inject newest X position at head (Z = 0)
+                posAttr.setX(0, x);
+                posAttr.needsUpdate = true;
+            }
+
+
+            // --- Update HUD & Realtime Numerical Display ---
+            hudTime.textContent = simTime.toFixed(2) + ' s';
+            hudX.textContent = (x >= 0 ? '+' : '') + x.toFixed(2) + ' m';
+            hudV.textContent = (v >= 0 ? '+' : '') + v.toFixed(2) + ' m/s';
+            hudA.textContent = (a >= 0 ? '+' : '') + a.toFixed(2) + ' m/s²';
+
+            // Percentage Bar Fills for Visual Gauge
+            const maxV = params.A * params.omega;
+            const maxA = params.A * Math.pow(params.omega, 2);
+
+            barX.style.width = Math.min(100, Math.max(0, ((x / params.A) + 1) * 50)) + '%';
+            barV.style.width = Math.min(100, Math.max(0, (maxV > 0 ? (v / maxV) : 0) + 1) * 50) + '%';
+            barA.style.width = Math.min(100, Math.max(0, (maxA > 0 ? (a / maxA) : 0) + 1) * 50) + '%';
+
+            // Energy Computations (Assuming mass m = 1kg, stiffness k = m*omega^2)
+            const m = 1.0;
+            const k = m * Math.pow(params.omega, 2);
+            const W_t = 0.5 * k * Math.pow(x, 2);              // Potential Energy
+            const W_d = 0.5 * m * Math.pow(v, 2);              // Kinetic Energy
+            const W = W_t + W_d;                               // Total Mechanical Energy
+
+            hudWt.textContent = W_t.toFixed(1) + ' J';
+            hudWd.textContent = W_d.toFixed(1) + ' J';
+            hudW.textContent = W.toFixed(1) + ' J';
+
+            if (W > 0) {
+                barWt.style.width = Math.min(100, (W_t / W) * 100) + '%';
+                barWd.style.width = Math.min(100, (W_d / W) * 100) + '%';
+            }
+        }
+
+        // Primary Render Loop
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const dt = clock.getDelta();
+            if (params.isRunning) {
+                updatePhysics(dt);
+            }
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // Initialize and Start
+        updateParamsFromUI();
+        animate();
+
+    </script>
+</body>
+</html>
