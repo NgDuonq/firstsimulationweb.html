@@ -21,3 +21,93 @@ body[data-simulation-view=reference] .workspace{gap:10px}
 
 .controls-panel>details:not([open])>summary,.readings-panel>details:not([open])>summary{margin-bottom:0;border-bottom:0}
 @media(max-width:620px){#circle-host,body[data-simulation-view=reference] #circle-host{height:355px}#circle-host.separated,body[data-simulation-view=reference] #circle-host.separated{height:600px}}
+
+/* The 3D stage is the primary experience; the analytical dashboard is optional. */
+.header-actions{display:flex;align-items:center;gap:10px}
+.view-switch button{font-size:12px;padding:8px 12px}
+#btn-toggle-graphs{white-space:nowrap;margin-left:auto}
+body[data-presentation=analysis] #btn-focus,body[data-presentation=analysis] #btn-toggle-graphs{display:none}
+body[data-presentation=analysis] .scene-panel{min-height:380px}
+body[data-presentation=analysis] #canvas-container{min-height:330px;height:360px}
+.scene-label{font-size:11px;background:#09101dcc;border:1px solid #ffffff0d;border-radius:4px;padding:2px 5px;text-shadow:0 1px 3px #000;white-space:nowrap}
+#canvas-container canvas{touch-action:none}
+body[data-presentation=spatial] .reference-panel .panel-heading,
+body[data-presentation=spatial] #circle-host{display:none}
+body[data-presentation=spatial] .scene-panel{display:flex}
+body[data-presentation=spatial] .insight-cards{display:none}
+body[data-presentation=spatial][data-graphs-open=false] .graph-panel .chart-wrap,
+body[data-presentation=spatial][data-graphs-open=false] .graph-panel .chart-legend,
+body[data-presentation=spatial][data-graphs-open=false] .graph-panel .graph-tools{display:none}
+body[data-presentation=spatial] .graph-heading .eyebrow{display:none}
+body[data-presentation=spatial] .graph-heading h2{font-size:12px}
+body[data-presentation=spatial] .graph-heading{padding:8px 14px;gap:16px}
+body[data-presentation=spatial] .graph-panel .chart-wrap{height:170px}
+body[data-presentation=spatial] .graph-panel .timeline{padding:7px 14px}
+body[data-presentation=spatial] .circle-toolbar{padding:0;justify-content:center;gap:12px}
+body[data-presentation=spatial] .circle-caption{font-size:10px;padding:7px 0}
+body[data-presentation=spatial] .amplitude-line{background:#0b1524b8;border:1px solid #ffffff14;border-radius:7px;font-size:11px;padding:6px 10px;gap:14px}
+@media(min-width:1001px){
+  body[data-presentation=spatial]{height:100svh;overflow:hidden;background:#080c14}
+  body[data-presentation=spatial] .app-shell{padding:0;max-width:none;height:100svh}
+  body[data-presentation=spatial] .app-header{position:fixed;top:16px;left:16px;right:16px;z-index:5;margin:0;pointer-events:none;gap:16px}
+  body[data-presentation=spatial] .brand,body[data-presentation=spatial] .header-actions{background:#0f172bc2;backdrop-filter:blur(18px);border:1px solid #ffffff18;border-radius:14px;box-shadow:0 10px 35px #0005;pointer-events:auto;padding:10px 14px}
+  body[data-presentation=spatial] .brand{border-left:3px solid #38bdf8;gap:12px}
+  body[data-presentation=spatial] .brand h1{font-size:21px;letter-spacing:-.4px}
+  body[data-presentation=spatial] .brand .eyebrow{font-size:8px;letter-spacing:1.2px}
+  body[data-presentation=spatial] .brand-mark{width:37px;height:37px;font-size:32px;border-radius:9px}
+  body[data-presentation=spatial] .header-actions{padding:8px}
+  body[data-presentation=spatial] .simulation-nav{position:fixed;top:98px;left:16px;right:16px;z-index:5;margin:0;gap:8px;padding:0}
+  body[data-presentation=spatial] .simulation-nav button{padding:7px 13px;font-size:11px;background:#101b2bc9;border:1px solid #ffffff12;backdrop-filter:blur(12px);border-radius:9px}
+  body[data-presentation=spatial] .simulation-nav button.active{background:#103340e6;color:#9cecff;border-color:#38bdf855}
+  body[data-presentation=spatial] .lab-grid{display:block}
+  body[data-presentation=spatial] .controls-panel,body[data-presentation=spatial] .readings-panel{position:fixed;top:151px;bottom:112px;width:274px;height:auto;max-height:none;z-index:4;background:#0f172bc4;border:1px solid #ffffff16;backdrop-filter:blur(18px);box-shadow:0 18px 50px #0004}
+  body[data-presentation=spatial] .controls-panel{left:16px}
+  body[data-presentation=spatial] .readings-panel{right:16px}
+  body[data-presentation=spatial] .workspace{display:contents}
+  body[data-presentation=spatial] .scene-panel{position:fixed;inset:0;z-index:0;display:block;border:0;background:#080c14;border-radius:0;min-height:0}
+  body[data-presentation=spatial] #canvas-container{position:absolute;inset:0;width:100%;height:100%;min-height:0;background:#080c14}
+  body[data-presentation=spatial] .scene-panel .panel-heading{position:fixed;top:150px;left:315px;right:315px;z-index:2;padding:0;pointer-events:none;align-items:start}
+  body[data-presentation=spatial] .scene-panel .panel-heading h2{font-size:13px;color:#d1e4ff;margin-top:2px;max-width:340px}
+  body[data-presentation=spatial] .scene-tools{pointer-events:auto;background:#111d30cc;backdrop-filter:blur(12px);padding:4px;border:1px solid #ffffff13;border-radius:7px}
+  body[data-presentation=spatial] .scene-tools button{font-size:10px}
+  body[data-presentation=spatial] .scene-footer{position:fixed;top:190px;left:315px;right:315px;bottom:auto;z-index:2;background:transparent;border:0;padding:0;gap:16px;font-size:9px;pointer-events:none}
+  body[data-presentation=spatial] #geometry-scale{display:none}
+  body[data-presentation=spatial] .reference-panel{position:fixed;left:315px;right:315px;bottom:112px;z-index:3;background:transparent;border:0;overflow:visible;border-radius:0}
+  body[data-presentation=spatial] .reference-panel .segmented{background:#0c1728df;border:1px solid #ffffff18;backdrop-filter:blur(14px)}
+  body[data-presentation=spatial] .graph-panel{position:fixed;bottom:12px;left:16px;right:16px;z-index:5;margin:0;background:#0f172be8;border:1px solid #ffffff16;backdrop-filter:blur(20px);box-shadow:0 0 40px #0005}
+  body[data-presentation=spatial] .app-footer{display:none}
+  body[data-presentation=spatial][data-graphs-open=true] .controls-panel,
+  body[data-presentation=spatial][data-graphs-open=true] .readings-panel{bottom:322px}
+  body[data-presentation=spatial][data-graphs-open=true] .reference-panel{bottom:322px}
+  body[data-presentation=spatial].stage-focus .controls-panel,
+  body[data-presentation=spatial].stage-focus .readings-panel,
+  body[data-presentation=spatial].stage-focus .reference-panel{display:none}
+  body[data-presentation=spatial].stage-focus .scene-panel .panel-heading,
+  body[data-presentation=spatial].stage-focus .scene-footer{left:32px;right:32px}
+}
+@media(max-width:1000px){
+  .header-actions{gap:5px}.view-switch button{font-size:11px;padding:6px 8px}
+  body[data-presentation=spatial] .app-shell{padding:14px 12px}
+  body[data-presentation=spatial] .app-header{flex-wrap:wrap;gap:12px;margin-bottom:16px}
+  body[data-presentation=spatial] .brand h1{font-size:22px}
+  body[data-presentation=spatial] .simulation-nav{margin-bottom:12px}
+  body[data-presentation=spatial] .simulation-nav button{font-size:11px;padding:7px 10px}
+  body[data-presentation=spatial] .lab-grid{display:flex;flex-direction:column;gap:12px}
+  body[data-presentation=spatial] .workspace{order:0;display:flex;gap:12px;align-self:stretch;width:100%}
+  body[data-presentation=spatial] .scene-panel{order:0;min-height:0;flex:none}
+  body[data-presentation=spatial] #canvas-container{height:65svh;min-height:460px;max-height:700px}
+  body[data-presentation=spatial] .scene-panel .panel-heading{padding:12px;align-items:start}
+  body[data-presentation=spatial] .scene-panel h2{font-size:12px}
+  body[data-presentation=spatial] .scene-tools{gap:1px;flex-shrink:0}
+  body[data-presentation=spatial] .scene-tools button{padding:4px 5px;font-size:9px}
+  body[data-presentation=spatial] .scene-footer{font-size:9px;flex-wrap:wrap;gap:4px}
+  body[data-presentation=spatial] #geometry-scale{display:none}
+  body[data-presentation=spatial] .reference-panel{order:1;background:transparent;border:0}
+  body[data-presentation=spatial] .controls-panel,body[data-presentation=spatial] .readings-panel{height:auto;max-height:none;order:1;width:100%}
+  body[data-presentation=spatial] .readings-panel{order:2}
+  body[data-presentation=spatial] .graph-panel{margin-top:12px}
+  body[data-presentation=spatial] .graph-heading{flex-wrap:wrap;gap:8px}
+  body[data-presentation=spatial] .graph-tools{width:100%;justify-content:flex-start}
+  body[data-presentation=spatial] .amplitude-line{font-size:10px;gap:10px}
+  body[data-presentation=spatial].stage-focus .controls-panel,body[data-presentation=spatial].stage-focus .readings-panel{display:none}
+}

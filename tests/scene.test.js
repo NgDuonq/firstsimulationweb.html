@@ -4,7 +4,7 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
 const THREE=require('../vendor/three.min.js'),P=require('../physics.js');
-const context={window:{},HarmonicPhysics:P};vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../scene.js'),'utf8'),context);
+const context={window:{},HarmonicPhysics:P,document:{body:{dataset:{presentation:'spatial',graphsOpen:'false'},classList:{contains:()=>false}}}};vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../scene.js'),'utf8'),context);
 const Scene=context.window.MechanicalScene;
 function fixture(){
   const s=Object.create(Scene.prototype);Object.assign(s,{T:THREE,is3D:true,scene:new THREE.Scene(),objects:new Map(),materials:new Map(),helix:new Map(),labelNodes:new Map(),boxGeo:new THREE.BoxGeometry(1,1,1),sphereGeo:new THREE.SphereGeometry(1,24,16),dir:new THREE.Vector3(),time:0});
@@ -37,7 +37,7 @@ test('Lò xo ngang: đầu dây gắn đúng mặt vật và hình học không 
   const s=fixture();
   for(const phase of [0,Math.PI/2,Math.PI,3*Math.PI/2]){
     const h=P.horizontal({...P.DEFAULTS.horizontal,A:.6,phi:phase},0);s.drawHorizontal(h,0,0,6.6,options);verify(s);
-    const pts=s.objects.get('h-coil').geometry.attributes.position.array,mass=s.objects.get('h-mass');assert.ok(Math.abs(pts[pts.length-3]-(mass.position.x-.31))<1e-5);
+    const pts=s.objects.get('h-coil').geometry.attributes.position.array,mass=s.objects.get('h-mass');assert.ok(Math.abs(pts[pts.length-3]-(mass.position.x-mass.scale.x/2))<1e-5);
     const p=P.pendulum({...P.DEFAULTS.pendulum,phi:phase},0);s.drawPendulum(p,0,3,5.2,options);
     const rope=s.objects.get('p-rope').geometry.attributes.position.array;assert.ok(Math.abs(Math.hypot(rope[3]-rope[0],rope[4]-rope[1])-5.2)<1e-5);
   }
@@ -51,4 +51,47 @@ test('Vectơ trọng lực có độ dài không đổi khi dao động, cùng t
     if(length===undefined)length=gravity;assert.ok(Math.abs(gravity-length)<1e-12);
     if(phase===Math.PI/2)assert.ok(Math.abs(s.objects.get('v-force-spring').cone.position.y-gravity)<1e-12);
   }
+});
+
+test('Ba vectơ pha là hình học Three.js 3D, đúng bán kính chuẩn hóa và góc pha',()=>{
+  const scene=fixture(),o={...options,layout:'overlap',angles:true};
+  for(const theta of [0,Math.PI/2,Math.PI,3*Math.PI/2,12.345]){
+    const sample=P.harmonic(.35,8,theta,0);scene.drawReference(sample,0,0,2,o);verify(scene);
+    for(const [key,offset]of [['x',0],['v',Math.PI/2],['a',Math.PI]]){
+      const point=scene.objects.get('circle-point-'+key),arrow=scene.objects.get('circle-radius-'+key);
+      assert.ok(point.isMesh,`${key} must be a mesh in the orbitable scene`);
+      assert.ok(Math.abs(point.position.x-2*Math.cos(theta+offset))<1e-12);
+      assert.ok(Math.abs(point.position.y-2*Math.sin(theta+offset))<1e-12);
+      const direction=new THREE.Vector3(0,1,0).applyQuaternion(arrow.quaternion);
+      assert.ok(Math.abs(direction.x-Math.cos(theta+offset))<1e-12);
+      assert.ok(Math.abs(direction.y-Math.sin(theta+offset))<1e-12);
+      assert.ok(Math.abs(arrow.cone.position.y-2)<1e-12);
+    }
+  }
+});
+
+test('Chồng/tách 3D giữ pha và tái sử dụng hình học qua chuyển cảnh',()=>{
+  const scene=fixture(),sample=P.harmonic(.2,3,.75,1.25),o={...options,angles:true,layout:'overlap'};
+  scene.drawReference(sample,0,0,2,o);
+  const meshes=new Map([...scene.objects].map(([id,mesh])=>[id,mesh]));
+  o.layout='separated';for(let i=0;i<180;i++)scene.drawReference(sample,0,0,2,o);
+  const positions=['x','v','a'].map(key=>scene.objects.get('circle-radius-'+key).position);
+  assert.ok(positions[0].x<-3.29&&Math.abs(positions[1].x)<1e-10&&positions[2].x>3.29);
+  for(const key of ['x','v','a']){
+    const point=scene.objects.get('circle-point-'+key),arrow=scene.objects.get('circle-radius-'+key);
+    assert.ok(Math.abs(Math.hypot(point.position.x-arrow.position.x,point.position.y-arrow.position.y)-1.28)<1e-8);
+    assert.equal(point,meshes.get('circle-point-'+key));
+  }
+  assert.equal(sample.theta,4.5);verify(scene);
+});
+
+test('Camera 3D mặc định có phối cảnh và đóng khung ở vùng không bị bảng che',()=>{
+  const scene=fixture();Object.assign(scene,{camera:new THREE.PerspectiveCamera(40,1,.05,500),w:1363,h:937,view:'combined',preset:'perspective'});
+  scene.fitCamera();assert.ok(scene.camera.position.x>1&&scene.camera.position.y>1);
+  scene.camera.updateMatrixWorld(true);
+  const projected=new THREE.Vector3().project(scene.camera),safe=scene.contentRect();
+  assert.ok(Math.abs((projected.x+1)*scene.w/2-(safe.left+safe.width/2))<1e-8);
+  assert.ok(Math.abs((1-projected.y)*scene.h/2-(safe.top+safe.height/2))<1e-8);
+  scene.cameraPreset('front');assert.equal(scene.camera.position.x,0);
+  scene.cameraPreset('reset');assert.ok(scene.camera.position.x>1);
 });

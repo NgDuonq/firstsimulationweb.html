@@ -4,7 +4,7 @@ Ngày kiểm tra: **06/11/2026**. Mã gốc được nâng cấp trên nhánh t�
 
 ## Kiểm thử tự động
 
-Lệnh: `node --test tests/*.test.js` với Node.js 24.22.1. Kết quả cuối: **17/17 đạt**, không có kiểm thử bị bỏ qua.
+Lệnh: `node --test tests/*.test.js` với Node.js 24.22.1. Kết quả cuối: **20/20 đạt**, không có kiểm thử bị bỏ qua.
 
 | Nhóm | Nội dung được xác minh |
 | --- | --- |
@@ -20,6 +20,9 @@ Lệnh: `node --test tests/*.test.js` với Node.js 24.22.1. Kết quả cuối:
 | Đạo hàm | Đạo hàm số độc lập của li độ/vận tốc khớp v/a của các mô hình |
 | Three.js thật trên CPU | Hình học và tọa độ hữu hạn; lò xo kết thúc tại đúng điểm gắn vật; bộ đệm dùng lại qua 100 lần cập nhật |
 | Thang lực | Vectơ trọng lực có độ dài không đổi theo thời gian; Fₛ và Fɡ dùng chung thang và bằng nhau tại cân bằng |
+| Đường tròn 3D | Ba điểm là Mesh, ba bán kính là ArrowHelper trong scene Three.js thật; tọa độ và hướng ở bốn pha chuẩn và pha bất kỳ đúng x/v/a chuẩn hóa |
+| Chồng/Tách 3D | Giữ mẫu vật lý, ba tâm/bán kính chuyển đúng, mesh và geometry được dùng lại |
+| Camera 3D | Mặc định có góc phối cảnh; reset trở lại phối cảnh; tâm mô hình chiếu vào giữa vùng màn hình không bị bảng che |
 
 Kiểm tra cú pháp: `node --check` cho physics.js, circles.js, charts.js, scene.js và app.js đều đạt.
 
@@ -47,6 +50,10 @@ Thực hiện bằng thao tác lên giao diện, không sửa trực tiếp tr�
 | Tạm dừng ở 1,5 s, sang trang khác rồi Back | Trở lại ở 1,500 s, vẫn dừng; cảnh không bị hủy khi được phục hồi từ bộ nhớ trang |
 | Desktop và khung nhìn 390/820 px | Không có tràn ngang của trang; thanh điều hướng được cuộn riêng; panel thu gọn được; đường tròn và hệ tổng hợp xếp dọc khi cần |
 | Console ở tab kiểm tra mới | Không có cảnh báo/lỗi từ ứng dụng hoặc thư viện; bỏ qua thông báo thuộc tiện ích trình duyệt |
+| Màn hình mặc định sau sửa giao diện 3D | Phòng lab tổng hợp; canvas phủ toàn khung nhìn desktop, không bị ẩn ở bài đường tròn; các bảng dạng kính nằm trên cảnh |
+| Đang dừng ở 1,234 s: Chồng/Tách, Không gian 3D → Phân tích → Không gian 3D, mở/thu đồ thị | Vẫn 1,234 s, dừng, giữ nguồn lò xo ngang và thông số |
+| Ẩn bảng / Hiện bảng | Các bảng được ẩn/hiện; phần thời gian và nút phục hồi luôn còn trên màn hình |
+| Kiểm tra lại 390/820 px sau sửa giao diện 3D | Không tràn ngang toàn trang; camera dùng khung rộng theo thiết bị; sửa lỗi panel 820 px từng co lại còn khoảng nửa chiều ngang |
 
 | θ | x (m) | v (m/s) | a (m/s²) |
 | --- | ---: | ---: | ---: |
@@ -64,7 +71,7 @@ Rà soát độc lập bằng GPT-6 Astra đã đọc các mô-đun và kiểm t
 - Trình duyệt kiểm thử không tạo được WebGL. Bản cũ dừng khởi tạo tại WebGLRenderer; bản nâng cấp chạy đường dự phòng Canvas 2D bình thường.
 - Đã dùng đúng Three.js r128 để kiểm tra scene graph, BufferGeometry, ArrowHelper, điểm gắn vật và tái sử dụng bộ đệm trên CPU. Điều này **không thay thế** kiểm tra ảnh trên GPU.
 - Chưa xác minh trực quan renderer 3D/OrbitControls, mất ngữ cảnh WebGL, Safari/iOS/Android trên thiết bị thật hoặc FPS trên laptop thực tế. Đây là bước QA tiếp theo được ưu tiên.
-- Khung nhìn 390/820 px được kiểm tra bằng iframe có viewport thực tương ứng, không phải thiết bị cảm ứng thật. Cảnh tổng hợp ở khung hẹp đã xác nhận chuyển thành vùng xếp dọc cao 650 px và không làm trang tràn ngang.
+- Khung nhìn 390/820 px được kiểm tra bằng iframe có viewport thực tương ứng, không phải thiết bị cảm ứng thật. Cảnh tổng hợp trên điện thoại sắp xếp lại các hệ trong cùng scene; các bảng nằm dưới cảnh và thu gọn mặc định. Chiều cao vùng cảnh thích ứng với chiều cao khung nhìn.
 - Mô hình phi tuyến là nghiệm số có độ chính xác hữu hạn. Không gọi đây là nghiệm giải tích chính xác tuyệt đối.
 - Chưa có tắt dần, cưỡng bức, khối lượng lò xo, va chạm hoặc mô hình lò xo bị chùng. Lò xo lý tưởng có thể chịu cả kéo và nén như quy ước đã ghi.
 - Thay đổi tham số là thay mô hình tức thời tại cùng t; không mô phỏng quá trình liên tục đổi độ cứng, khối lượng hay trọng trường.

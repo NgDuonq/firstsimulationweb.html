@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Phòng thí nghiệm dao động điều hòa: khám phá quan hệ pha x–v–a, lò xo ngang, lò xo thẳng đứng và con lắc đơn.">
   <meta name="theme-color" content="#080f1b">
-  <title>Phòng thí nghiệm dao động · x–v–a</title>
+  <title>Mô phỏng dao động 3D · x–v–a</title>
   <link rel="stylesheet" href="style.css">
   <script defer src="vendor/three.min.js"></script>
   <script defer src="vendor/OrbitControls.js"></script>
@@ -15,22 +15,22 @@
   <script defer src="scene.js"></script>
   <script defer src="app.js"></script>
 </head>
-<body>
+<body data-presentation="spatial" data-graphs-open="false">
   <a class="skip-link" href="#workspace">Đến vùng mô phỏng</a>
   <div class="app-shell">
     <header class="app-header">
       <a class="brand" href="#" aria-label="Phòng thí nghiệm dao động">
         <span class="brand-mark" aria-hidden="true">∿</span>
-        <span><span class="eyebrow">VẬT LÝ · PHÒNG THÍ NGHIỆM TƯƠNG TÁC</span><h1>Dao động điều hòa<span class="title-dot">.</span></h1></span>
+        <span><span class="eyebrow">VẬT LÝ · PHÒNG THÍ NGHIỆM TƯƠNG TÁC</span><h1>Dao động điều hòa <span class="title-dot">3D</span></h1></span>
       </a>
-      <div class="header-note"><span class="status-dot"></span><span>Một đồng hồ. Nhiều góc nhìn.</span></div>
+      <div class="header-actions"><div class="segmented view-switch" role="group" aria-label="Cách xem mô phỏng"><button id="presentation-spatial" class="active" aria-pressed="true">Không gian 3D</button><button id="presentation-analysis" aria-pressed="false">Phân tích x–v–a</button></div><button id="btn-focus" class="quiet" aria-pressed="false">Ẩn bảng</button></div>
     </header>
     <nav class="simulation-nav" aria-label="Chọn mô phỏng">
-      <button data-view="reference" class="active" aria-current="page"><span>01</span> x–v–a & đường tròn</button>
-      <button data-view="horizontal"><span>02</span> Lò xo ngang</button>
-      <button data-view="vertical"><span>03</span> Lò xo thẳng đứng</button>
-      <button data-view="pendulum"><span>04</span> Con lắc đơn</button>
-      <button data-view="combined"><span>05</span> So sánh tổng hợp</button>
+      <button data-view="combined" class="active" aria-current="page"><span>01</span> Phòng lab 3D</button>
+      <button data-view="reference"><span>02</span> x–v–a & đường tròn</button>
+      <button data-view="horizontal"><span>03</span> Lò xo ngang</button>
+      <button data-view="vertical"><span>04</span> Lò xo thẳng đứng</button>
+      <button data-view="pendulum"><span>05</span> Con lắc đơn</button>
     </nav>
 
     <div class="lab-grid">
@@ -66,7 +66,7 @@
                 <label class="a-color"><input id="toggle-vector-a" type="checkbox" checked> Vectơ gia tốc</label>
                 <label><input id="toggle-angles" type="checkbox" checked> Góc lệch pha</label>
                 <label><input id="toggle-projections" type="checkbox" checked> Đường chiếu</label>
-                <label><input id="toggle-wave-trace" type="checkbox"> Vệt sóng theo thời gian</label>
+                <label><input id="toggle-wave-trace" type="checkbox" checked> Vệt sóng 3D theo thời gian</label>
               </div>
             </details>
             <details class="display-options" id="forces-details">
@@ -90,9 +90,9 @@
           <div id="amplitude-line" class="amplitude-line"></div>
         </section>
         <section class="panel scene-panel" aria-labelledby="scene-title">
-          <div class="panel-heading"><div><span class="eyebrow">HỆ CƠ HỌC · CÙNG THỜI GIAN t</span><h2 id="scene-title">Lò xo ngang</h2></div><div class="scene-tools"><button id="camera-front" class="quiet" title="Nhìn chính diện">Chính diện</button><button id="camera-perspective" class="quiet" title="Góc nhìn 3D">3D</button><button id="camera-reset" class="quiet" title="Khôi phục góc nhìn">↺</button></div></div>
+          <div class="panel-heading"><div><span class="eyebrow">KHÔNG GIAN 3D · CÙNG THỜI GIAN t</span><h2 id="scene-title">Phòng lab 3D</h2></div><div class="scene-tools"><button id="camera-front" class="quiet" title="Nhìn chính diện">Chính diện</button><button id="camera-perspective" class="quiet" title="Góc nhìn phối cảnh">Phối cảnh</button><button id="camera-reset" class="quiet" title="Khôi phục góc nhìn 3D">↺ Góc gốc</button></div></div>
           <div id="canvas-container" aria-label="Mô phỏng hệ cơ học"><div id="scene-labels" aria-hidden="true"></div></div>
-          <div class="scene-footer"><span id="render-status">Đang chuẩn bị mô phỏng…</span><span id="geometry-scale">Hình học theo tỉ lệ SI</span></div>
+          <div class="scene-footer"><span id="render-status">Đang chuẩn bị mô phỏng…</span><span id="geometry-scale">Xoay: kéo trái · Dịch: kéo phải · Thu phóng: cuộn</span></div>
         </section>
         <div id="insight-cards" class="insight-cards" aria-label="Nhận xét vật lý theo thời gian"></div>
       </main>
@@ -118,7 +118,7 @@
     </div>
 
     <section class="panel graph-panel" aria-labelledby="graph-title">
-      <div class="graph-heading"><div><span class="eyebrow">CÙNG MỘT TRỤC THỜI GIAN</span><h2 id="graph-title">Đọc pha trên đồ thị</h2></div><div class="graph-tools">
+      <div class="graph-heading"><div><span class="eyebrow">CÙNG MỘT TRỤC THỜI GIAN</span><h2 id="graph-title">Đọc pha trên đồ thị</h2></div><button id="btn-toggle-graphs" class="quiet" aria-expanded="false">Mở đồ thị ↑</button><div class="graph-tools">
         <div class="graph-toggles" role="group" aria-label="Hiện đồ thị"><label class="x-color"><input type="checkbox" id="graph-x" checked> <span id="graph-position-symbol">x</span></label><label class="v-color"><input type="checkbox" id="graph-v" checked> v</label><label class="a-color"><input type="checkbox" id="graph-a" checked> a</label></div>
         <label><span class="sr-only">Thang đồ thị</span><select id="graph-scale"><option value="normalized">Chuẩn hóa</option><option value="actual">Đơn vị thật (SI)</option></select></label>
         <label><span class="sr-only">Cửa sổ thời gian</span><select id="graph-window"><option value="1">1 chu kỳ</option><option value="2" selected>2 chu kỳ</option><option value="4">4 chu kỳ</option></select></label>
