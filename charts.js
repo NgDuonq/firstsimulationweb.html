@@ -13,6 +13,7 @@
     }
     draw(time,sample,s,options){
       const canvas=this.canvas,r=canvas.getBoundingClientRect(),dpr=Math.min(devicePixelRatio||1,2);
+      if(r.width<1||r.height<1)return;
       const w=Math.max(260,r.width),h=r.height;
       if(canvas.width!==Math.round(w*dpr)||canvas.height!==Math.round(h*dpr)){canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);this.lastKey='';}
       const key=[time,s.A,s.omega,s.phi,s.harmonic,s.alpha,options.scale,options.window,...keys.map(k=>options.graphs[k]),canvas.width,canvas.height,options.revision].join('|');

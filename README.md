@@ -4,14 +4,18 @@ Mô phỏng tương tác bằng HTML, CSS, JavaScript và **Three.js r128**. Kh�
 
 Bản nâng cấp giữ hệ cơ học, vectơ, chỉ số tức thời, năng lượng, điều khiển phát/dừng/bước và camera của bản trước; tổ chức lại mã để tính vật lý độc lập với hiển thị. Không dùng framework, không cần backend, không có bước build.
 
+**Màn hình mặc định là không gian Three.js 3D lớn**, với đường tròn pha, lò xo ngang, lò xo đứng và con lắc đơn trong cùng một cảnh. Có nền lưới, ánh sáng màu, bóng đổ, vật liệu kim loại, lò xo dạng ống và vệt sóng theo trục Z. Kéo trái để xoay, kéo phải để dịch chuyển, cuộn để thu phóng; góc mặc định và nút khôi phục dùng phối cảnh.
+
+Chọn **“Phân tích x–v–a”** để mở dashboard với sơ đồ SVG và ba đồ thị. Hai cách xem dùng cùng thông số và đồng hồ. Trong không gian 3D, nút **“Mở đồ thị”** mở các đồ thị ngay phía dưới cảnh; **“Ẩn bảng”** dành thêm không gian cho camera. Ba vectơ và cả hai bố trí Chồng/Tách đều có hình học thật trong scene Three.js, không chỉ là lớp SVG phủ lên ảnh.
+
 ## Chạy ứng dụng
 
-Tải mã của nhánh `feature/shm-physics-lab`, giải nén và **mở `index.html`** bằng Chrome, Firefox, Edge hoặc Safari hiện đại. Giữ nguyên cấu trúc thư mục, đặc biệt thư mục `vendor/`.
+Tải mã của nhánh `main`, giải nén và **mở `index.html`** bằng Chrome, Firefox, Edge hoặc Safari hiện đại. Giữ nguyên cấu trúc thư mục, đặc biệt thư mục `vendor/`.
 
 Nếu dùng Git:
 
 ```bash
-git clone --branch feature/shm-physics-lab https://github.com/NgDuonq/firstsimulationweb.html.git
+git clone https://github.com/NgDuonq/firstsimulationweb.html.git
 cd firstsimulationweb.html
 ```
 
@@ -21,11 +25,12 @@ Nếu thiết bị không tạo được WebGL, ứng dụng tự chuyển sang 
 
 ## Khám phá
 
-- **x–v–a & đường tròn:** ba vectơ quay chuẩn hóa; chọn “Chồng đường tròn” hoặc “Tách đường tròn”. Mỗi vectơ có màu, hình điểm và hình chiếu riêng. Trên màn hình hẹp, các hình tách được xếp dọc; chế độ chồng đưa bảng số xuống dưới.
+- **Phòng lab 3D:** tất cả hệ và đường tròn pha trong một scene có thể xoay. Nguồn x–v–a mặc định là lò xo ngang. Khung nhìn 3D tự chừa vùng cho các bảng; trên màn hình nhỏ, các bảng có thể mở bên dưới cảnh.
+- **x–v–a & đường tròn:** ba vectơ quay chuẩn hóa; chọn “Chồng đường tròn” hoặc “Tách đường tròn”. Mỗi vectơ có màu, hình điểm và hình chiếu riêng. Bản 3D dùng mũi tên, torus và điểm hình cầu/bát diện/hộp trong scene; bản phân tích dùng SVG, xếp các hình tách dọc trên màn hình hẹp.
 - **Lò xo ngang:** vật, thanh dẫn, lò xo xoắn, vectơ x/v/a, hai biên và vệt sóng tùy chọn. Vệt sóng lấy x(t − τ) theo thời gian thật của mô hình, không tích lũy theo số khung hình.
 - **Lò xo thẳng đứng:** điểm treo, lò xo, vật, thước đo L, chiều dài tự nhiên, cân bằng tĩnh, hai biên, vectơ động học và ba vectơ lực bật/tắt độc lập.
 - **Con lắc đơn:** chọn gần đúng góc nhỏ hoặc mô hình phi tuyến. Li độ trong bảng và đồ thị là **li độ cung s = ℓα**, không phải tọa độ ngang của quả nặng.
-- **So sánh tổng hợp:** cùng xem ba hệ cơ học. Trên màn hình hẹp các hệ được xếp dọc.
+- **So sánh tổng hợp:** dùng “Phòng lab 3D” và chọn “So sánh · cùng pha”. Khi giữ “Vật lý · tần số riêng”, các hệ chỉ đồng bộ thời gian.
 
 “Nguồn x–v–a / đồ thị” xác định hệ mà đường tròn, bảng số, năng lượng và đồ thị đang khảo sát. Nguồn này có thể chọn độc lập với cảnh cơ học, đặc biệt trong màn hình tổng hợp.
 
@@ -128,7 +133,7 @@ Trong chế độ So sánh, k và ℓ hiệu dụng được suy ra để tươn
 | `docs/VALIDATION.md` | Kết quả kiểm tra, các bước hồi quy và hạn chế môi trường |
 | `.gitignore` | Bỏ qua tệp preview, tệp đóng gói và dữ liệu tạm |
 
-Renderer dùng bộ đệm đỉnh cấp phát một lần và cập nhật tại chỗ; không tạo mới geometry/material theo mỗi khung hình. Tài nguyên được giải phóng khi rời trang; trạng thái trang được giữ khi trình duyệt lưu vào bộ nhớ Back/Forward. Cảnh 3D ẩn ở bài x–v–a không được vẽ thừa.
+Renderer dùng bộ đệm đỉnh, pháp tuyến và khoảng cách nét đứt cấp phát một lần rồi cập nhật tại chỗ; không tạo mới geometry/material theo mỗi khung hình. Lò xo 3D có bề dày thật, lưới ống và pháp tuyến cập nhật theo hình xoắn. Tài nguyên được giải phóng khi rời trang; trạng thái trang được giữ khi trình duyệt lưu vào bộ nhớ Back/Forward. Chỉ chế độ Phân tích mới ẩn scene ở bài x–v–a. Đồ thị và sơ đồ SVG không được vẽ thừa khi bị thu gọn/ẩn trong không gian 3D.
 
 ## Kiểm tra
 
@@ -143,7 +148,7 @@ node --check circles.js
 node --check charts.js
 ```
 
-17 kiểm thử tự động đã đạt. Đã đối chiếu bốn pha chuẩn trên giao diện, tua/tiến/lùi, công tắc, chế độ đồ thị, giới hạn A, thay g không đổi T, giữ thông số khi chuyển chế độ và khôi phục mặc định. Đã kiểm tra bố cục desktop và khung nhìn hẹp 390/820 px.
+20 kiểm thử tự động đã đạt. Ngoài các kiểm tra vật lý, đã kiểm tra vectơ pha là mesh/ArrowHelper trong Three.js, chuẩn hóa bán kính và dấu pha, tái sử dụng hình học khi Chồng/Tách, góc camera mặc định và phép chiếu vào vùng không bị bảng che. Đã đối chiếu bốn pha chuẩn trên giao diện, tua/tiến/lùi, công tắc, chế độ đồ thị, giới hạn A, thay g không đổi T, giữ thông số khi chuyển chế độ và khôi phục mặc định. Đã kiểm tra bố cục desktop và khung nhìn hẹp 390/820 px. Chuyển Không gian 3D ↔ Phân tích và mở/thu đồ thị giữ t = 1,234 s cùng trạng thái dừng.
 
 **Giới hạn xác minh:** trình duyệt kiểm thử không cung cấp WebGL. Đã kiểm tra đường dự phòng 2D và hình học/bộ đệm bằng thư viện Three.js thật trên CPU; chưa xác minh trực quan renderer GPU, OrbitControls và mất/khôi phục WebGL trên thiết bị có GPU. Không tuyên bố hiệu năng FPS trên phần cứng thực tế. Xem `docs/VALIDATION.md`.
 

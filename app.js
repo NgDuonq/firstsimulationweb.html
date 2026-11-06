@@ -3,8 +3,8 @@
   'use strict';
   const P=HarmonicPhysics,$=id=>document.getElementById(id),clock=new P.Clock();
   const names={reference:'Dao động điều hòa mẫu',horizontal:'Lò xo ngang',vertical:'Lò xo thẳng đứng',pendulum:'Con lắc đơn'};
-  const state={params:P.freshParams(),mode:'physical',view:'reference',source:'reference',layout:'overlap',scale:'normalized',window:2,revision:0,
-    vectors:{x:true,v:true,a:true},graphs:{x:true,v:true,a:true},forces:{spring:true,gravity:true,net:true},angles:true,projections:true,wave:false};
+  const state={params:P.freshParams(),mode:'physical',view:'combined',source:'horizontal',presentation:'spatial',layout:'overlap',scale:'normalized',window:2,revision:0,
+    vectors:{x:true,v:true,a:true},graphs:{x:true,v:true,a:true},forces:{spring:true,gravity:true,net:true},angles:true,projections:true,wave:true};
   const fields={
     reference:[['A','Biên độ A','m',.01],['omega','Tần số góc ω','rad/s',.1],['phi','Pha ban đầu φ','rad',.01]],
     horizontal:[['m','Khối lượng m','kg',.01],['k','Độ cứng k','N/m',.1],['A','Biên độ A','m',.01],['phi','Pha ban đầu φ','rad',.01]],
@@ -133,12 +133,29 @@
   function selectView(view){
     state.view=view;document.body.dataset.simulationView=view;if(view!=='combined')state.source=view;$('data-source').value=state.source;
     for(const b of document.querySelectorAll('[data-view]')){const active=b.dataset.view===view;b.classList.toggle('active',active);if(active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');}
-    $('scene-title').textContent=view==='combined'?'Ba hệ · cùng thời gian, đúng mô hình':view==='reference'?'Lò xo ngang · cùng t, tần số riêng':names[view];
+    $('scene-title').textContent=view==='combined'?'Đường tròn pha · lò xo · con lắc đơn':view==='reference'?'Ba vectơ pha trong không gian 3D':names[view];
     if(view==='vertical')$('forces-details').open=true;
     renderParameters();buildFormula();mark();
   }
   function seek(t){clock.running=false;clock.seek(t);mark();}
+  function setPresentation(presentation){
+    state.presentation=presentation;document.body.dataset.presentation=presentation;
+    document.body.classList.remove('stage-focus');$('btn-focus').setAttribute('aria-pressed','false');$('btn-focus').textContent='Ẩn bảng';
+    for(const value of ['spatial','analysis']){
+      $('presentation-'+value).classList.toggle('active',presentation===value);
+      $('presentation-'+value).setAttribute('aria-pressed',String(presentation===value));
+    }
+    // Presentation switches preserve clock, parameters, selected source and view.
+    scene.resize();mark();
+  }
   function setupEvents(){
+    for(const presentation of ['spatial','analysis'])$('presentation-'+presentation).addEventListener('click',()=>setPresentation(presentation));
+    $('btn-focus').addEventListener('click',()=>{
+      const focus=document.body.classList.toggle('stage-focus');$('btn-focus').setAttribute('aria-pressed',String(focus));$('btn-focus').textContent=focus?'Hiện bảng':'Ẩn bảng';scene.resize();mark();
+    });
+    $('btn-toggle-graphs').addEventListener('click',()=>{
+      const open=document.body.dataset.graphsOpen!=='true';document.body.dataset.graphsOpen=String(open);$('btn-toggle-graphs').setAttribute('aria-expanded',String(open));$('btn-toggle-graphs').textContent=open?'Thu đồ thị ↓':'Mở đồ thị ↑';scene.resize();mark();
+    });
     document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>selectView(b.dataset.view)));
     $('data-source').addEventListener('change',()=>{state.source=$('data-source').value;renderParameters();buildFormula();mark();});
     $('experience-mode').addEventListener('change',()=>{state.mode=$('experience-mode').value;$('mode-note').textContent=state.mode==='comparison'?'Pha chung: k = mω², ℓ = g/ω²; α₀ ≤ 0,20 rad. Hệ đứng có thể giảm A để giữ chiều dài hợp lệ. Thông số riêng được giữ khi trở lại chế độ Vật lý.':'Mỗi hệ có tần số từ thông số riêng; cùng dùng thời gian t.';renderParameters();buildFormula();mark();});
@@ -173,19 +190,19 @@
   function reset(){
     state.params=P.freshParams();state.mode='physical';state.layout='overlap';state.scale='normalized';state.window=2;
     clock.restart();clock.speed=1;clock.running=true;$('slider-speed').value=1;$('val-speed').textContent='1.0×';
-    state.vectors={x:true,v:true,a:true};state.graphs={x:true,v:true,a:true};state.forces={spring:true,gravity:true,net:true};state.angles=true;state.projections=true;state.wave=false;
+    state.vectors={x:true,v:true,a:true};state.graphs={x:true,v:true,a:true};state.forces={spring:true,gravity:true,net:true};state.angles=true;state.projections=true;state.wave=true;
     for(const k of ['x','v','a']){$('toggle-vector-'+k).checked=true;$('graph-'+k).checked=true;}
     for(const k of ['spring','gravity','net'])$('toggle-force-'+k).checked=true;
-    $('toggle-angles').checked=$('toggle-projections').checked=true;$('toggle-wave-trace').checked=false;
+    $('toggle-angles').checked=$('toggle-projections').checked=$('toggle-wave-trace').checked=true;
     $('layout-overlap').classList.add('active');$('layout-overlap').setAttribute('aria-pressed','true');$('layout-separated').classList.remove('active');$('layout-separated').setAttribute('aria-pressed','false');
     $('graph-scale').value='normalized';$('graph-window').value=2;$('experience-mode').value='physical';$('mode-note').textContent='Mỗi hệ có tần số từ thông số riêng; cùng dùng thời gian t.';
-    $('controls-details').open=$('readings-details').open=true;scene.cameraPreset('reset');selectView('reference');
+    $('controls-details').open=$('readings-details').open=true;document.body.dataset.graphsOpen='false';$('btn-toggle-graphs').setAttribute('aria-expanded','false');$('btn-toggle-graphs').textContent='Mở đồ thị ↑';state.source='horizontal';setPresentation('spatial');scene.cameraPreset('reset');selectView('combined');
   }
   function draw(dt,forceHud=false){
     const bundle=P.all(state.params,state.mode,clock.time),s=bundle.samples[state.source];
-    circles.update(s,{layout:state.layout,vectors:state.vectors,angles:state.angles,projections:state.projections,positionSymbol:state.source==='vertical'?'y':state.source==='pendulum'?'s':'x'},dt);
+    if(state.presentation==='analysis')circles.update(s,{layout:state.layout,vectors:state.vectors,angles:state.angles,projections:state.projections,positionSymbol:state.source==='vertical'?'y':state.source==='pendulum'?'s':'x'},dt);
     const p=bundle.params,source=state.source;
-    if(state.view!=='reference')scene.render(clock.time,bundle,state.view,state,t=>P.horizontal(p.horizontal,t));
+    if(state.presentation==='spatial'||state.view!=='reference')scene.render(clock.time,bundle,state.view,{...state,dt},t=>P.horizontal(p.horizontal,t));
     charts.draw(clock.time,t=>P.evaluate(source,p[source],t),s,state);
     const now=performance.now();
     if(forceHud||dirty||now-lastHud>65){
@@ -202,9 +219,9 @@
   }
   function init(){
     scene=new MechanicalScene($('canvas-container'),$('render-status'));circles=new CircleView($('circle-host'));charts=new TimeCharts($('time-chart'),seek);
-    setupEvents();selectView('reference');
+    setupEvents();selectView('combined');
     // Start with panels collapsed on narrow screens; all controls remain available.
-    if(matchMedia('(max-width:620px)').matches){$('controls-details').open=false;$('readings-details').open=false;}
+    if(matchMedia('(max-width:1000px)').matches){$('controls-details').open=false;$('readings-details').open=false;}
     draw(1,true);rafId=requestAnimationFrame(frame);
   }
   try{init();}catch(err){$('app-error').hidden=false;$('app-error').textContent='Không thể khởi tạo mô phỏng: '+err.message;console.error(err);}
